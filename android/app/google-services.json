@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "216017858951",
+    "project_id": "masoud-oil",
+    "storage_bucket": "masoud-oil.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:216017858951:android:1c627743dd8d4b993de322",
+        "android_client_info": {
+          "package_name": "com.asemapps.masoud_oil.masoud_oil"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "216017858951-s2f144asqg8t8cj6f5n0kst9hepiqath.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.asemapps.masoud_oil.masoud_oil",
+            "certificate_hash": "081d990aaa199c48ddeca71ed12eaeae66bc8de9"
+          }
+        },
+        {
+          "client_id": "216017858951-jtc4slsnkm47knau2d7ujpe8q2vnhqns.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOSL_etc_PXXoizk3bzKpgWvvcAE0nVqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "216017858951-jtc4slsnkm47knau2d7ujpe8q2vnhqns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
