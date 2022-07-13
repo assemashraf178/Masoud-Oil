@@ -4,7 +4,6 @@ class DataModel {
   String? oilType;
   String? notes;
   String? carType;
-  String? address;
   double? latitude;
   double? longitude;
   String? date;
@@ -15,7 +14,6 @@ class DataModel {
     this.oilType,
     this.notes,
     this.carType,
-    this.address,
     this.latitude,
     this.longitude,
     this.date,
@@ -27,7 +25,6 @@ class DataModel {
         oilType: json["oilType"],
         notes: json["notes"],
         carType: json["carType"],
-        address: json["address"],
         latitude: json["latitude"].toDouble(),
         longitude: json["longitude"].toDouble(),
         date: json["date"],
@@ -39,7 +36,6 @@ class DataModel {
         "oilType": oilType,
         "notes": notes,
         "carType": carType,
-        "address": address,
         "latitude": latitude,
         "longitude": longitude,
         "date": date,

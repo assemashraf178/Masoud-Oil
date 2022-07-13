@@ -8,8 +8,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:masoud_oil/data_model.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import 'custom_text_form_fieled.dart';
+import 'oil_type_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -22,14 +24,39 @@ class _HomePageState extends State<HomePage> {
   final _formKey = GlobalKey<FormState>();
   var nameController = TextEditingController();
   var phoneController = TextEditingController();
-  var oilTypeController = TextEditingController();
   var carTypeController = TextEditingController();
-  var addressController = TextEditingController();
+  var anotherOilTypeController = TextEditingController();
   var notesController = TextEditingController();
+
   bool isFilter = false;
   bool isSendLoading = false;
   bool isLocationLoading = false;
   String token = '';
+  String oilTypeName = '';
+  String oilTypeNumber = '';
+  String oilTypePrice = '';
+  List<OilTypeModel> oilTypesModel = [];
+  List<DetailsOilTypeModel> oilTypeDetails = [];
+
+  /* List<DetailsOilTypeModel> oilTypeList = [];
+
+  Future<void> getOilType() async {
+    final String response =
+        await rootBundle.loadString('assets/json/oil_type.json');
+    final data = await json.decode(response);
+    print(data['items']);
+    setState(() {
+      oilTypeList = data['items']
+          .map<DetailsOilTypeModel>(
+              (json) => DetailsOilTypeModel.fromJson(json))
+          .toList();
+    });
+    setState(() {
+      initialOilType = oilTypeList[0];
+    });
+    print(oilTypeList);
+  }*/
+
   final apiKey =
       'AAAAMkuq8Yc:APA91bEkoVR0NAK0iJW89UMbfoVNDEynNwOl0Z8WBNeWLK7Cpxp4H84A03ivkq5UOVADmFsHoEy0waUBxxdiZC5o8ZMp6MvXoBiXVf10V4bLjDxYMaLwL_44pRgbJMpbN_JPCd0zcgRp';
   Position? _currentPosition;
@@ -60,10 +87,11 @@ class _HomePageState extends State<HomePage> {
     DataModel dataModel = DataModel(
       name: nameController.text,
       phone: phoneController.text,
-      oilType: oilTypeController.text,
+      oilType: anotherOilTypeController.text == ''
+          ? '$oilTypeName $oilTypeNumber'
+          : anotherOilTypeController.text,
       notes: notesController.text,
       carType: carTypeController.text,
-      address: addressController.text,
       latitude: _currentPosition?.latitude,
       longitude: _currentPosition?.longitude,
       date: DateTime.now().toString(),
@@ -95,10 +123,10 @@ class _HomePageState extends State<HomePage> {
               setState(() {
                 nameController.text = '';
                 phoneController.text = '';
-                oilTypeController.text = '';
                 carTypeController.text = '';
                 notesController.text = '';
-                addressController.text = '';
+                anotherOilTypeController.text = '';
+                oilTypeDetails = [];
                 _currentPosition = null;
                 Navigator.pop(context);
               });
@@ -145,7 +173,7 @@ class _HomePageState extends State<HomePage> {
               'notification': <String, dynamic>{
                 "title": "طلب جديد",
                 "body":
-                    "اسم صاحب الطلب: ${nameController.text}\nنوع الزيت: ${oilTypeController.text}\nالعنوان: ${addressController.text}",
+                    "اسم صاحب الطلب: ${nameController.text}\nنوع الزيت: ${anotherOilTypeController.text == '' ? ("$oilTypeName $oilTypeNumber") : anotherOilTypeController.text}",
               },
               'priority': 'high',
               'data': <String, dynamic>{
@@ -161,36 +189,63 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       print("error push notification");
     }
+  }
 
-    /* var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'key=$apiKey'
-    };
-    var request =
-        http.Request('POST', Uri.parse('https://fcm.googleapis.com/fcm/send'));
-    request.body = json.encode({
-      "to": token,
-      "notification": {
-        "title": "طلب جديد",
-        "body": ""
-            "اسم صاحب الطلب: ${nameController.text}\nنوع الزيت: ${oilTypeController.text}\nرقم الجوال: ${phoneController.text}",
+  void getAllOilTypes() {
+    oilTypesModel = [];
+    FirebaseFirestore.instance.collection('oilType').get().then((value) {
+      for (int i = 0; i < value.docs.length; i++) {
+        oilTypesModel.add(OilTypeModel(
+          name: value.docs[i].data()['name'],
+          id: value.docs[i].id,
+        ));
       }
+      setState(() {
+        oilTypeName = oilTypesModel[0].name.toString();
+      });
+      print(oilTypesModel.toString());
+    }).catchError((error) {
+      print(oilTypesModel.toString());
+      print(error.toString());
+      Fluttertoast.showToast(msg: 'حدث خطأ ما');
     });
-    request.headers.addAll(headers);
+    // print(oilTypesModel[0]);
+  }
 
-    http.StreamedResponse response = await request.send();
-
-    if (response.statusCode == 200) {
-      print(await response.stream.bytesToString());
-    } else {
-      print(response.reasonPhrase);
-    }*/
+  void getOilTypeDetails({
+    required String type,
+  }) {
+    FirebaseFirestore.instance
+        .collection('oilType')
+        .doc(type)
+        .collection('types')
+        .get()
+        .then((value) {
+      oilTypeDetails = [];
+      for (var element in value.docs) {
+        setState(() {
+          oilTypeDetails.add(DetailsOilTypeModel(
+            id: element.id,
+            name: element.data()['name'],
+            price: element.data()['price'],
+          ));
+          oilTypeNumber = oilTypeDetails[0].name.toString();
+          oilTypePrice = oilTypeDetails[0].price.toString();
+        });
+      }
+      print(oilTypeDetails.toString());
+    }).catchError((error) {
+      print(oilTypeDetails.toString());
+      print(error.toString());
+      Fluttertoast.showToast(msg: 'حدث خطأ ما');
+    });
   }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    getAllOilTypes();
     _getToken();
   }
 
@@ -198,7 +253,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Masoud Oil'),
+        title: const Text('Masoud Oil'),
         centerTitle: true,
         titleTextStyle: Theme.of(context).textTheme.titleLarge,
       ),
@@ -263,23 +318,130 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.015,
                 ),
-                CustomTextFormField(
-                  formKey: _formKey,
-                  backgroundColor: Colors.white,
-                  onTap: () {},
-                  controller: oilTypeController,
-                  hint: 'نوع الزيت',
-                  prefixIcon: Icons.oil_barrel,
-                  keyboardType: TextInputType.text,
-                  obscureText: false,
-                  readOnly: false,
-                  maxLines: 1,
-                  validator: (value) {
-                    if (value!.isEmpty) {
-                      return 'الرجاء إدخال البيانات';
-                    }
-                    return null;
-                  },
+                Card(
+                  elevation: 0,
+                  clipBehavior: Clip.antiAlias,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    side: BorderSide(
+                      color: Theme.of(context).primaryColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: MediaQuery.of(context).size.width * 0.05,
+                      horizontal: MediaQuery.of(context).size.width * 0.025,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          'نوع الزيت:',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium!.copyWith(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        PopupMenuButton(
+                          itemBuilder: (context) {
+                            return oilTypesModel.map((oilType) {
+                              return PopupMenuItem(
+                                value: oilType,
+                                child: Text(oilType.name.toString()),
+                                onTap: () {
+                                  setState(() {
+                                    getOilTypeDetails(
+                                        type: oilType.id.toString());
+                                    oilTypeName = oilType.name!;
+                                    print(oilTypeName);
+                                  });
+                                },
+                              );
+                            }).toList();
+                          },
+                          tooltip: 'اختر نوع الزيت',
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width * 0.05,
+                              ),
+                              side: BorderSide(
+                                color: Theme.of(context).primaryColor,
+                                width: 1,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      MediaQuery.of(context).size.width * 0.02),
+                              child: Text(oilTypeName),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (oilTypeDetails.isNotEmpty)
+                          Text(
+                            'كيلو متر:',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium!
+                                .copyWith(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        if (oilTypeDetails.isNotEmpty)
+                          PopupMenuButton(
+                            itemBuilder: (context) {
+                              return oilTypeDetails.map((oilType) {
+                                return PopupMenuItem(
+                                  value: oilType,
+                                  child: Text(oilType.name.toString()),
+                                  onTap: () {
+                                    setState(() {
+                                      oilTypePrice = oilType.price!;
+                                      oilTypeNumber = oilType.name!;
+                                      print(oilTypePrice);
+                                    });
+                                  },
+                                );
+                              }).toList();
+                            },
+                            tooltip: 'اختر عدد الكيلو متر',
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  MediaQuery.of(context).size.width * 0.05,
+                                ),
+                                side: BorderSide(
+                                  color: Theme.of(context).primaryColor,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal:
+                                        MediaQuery.of(context).size.width *
+                                            0.02),
+                                child: Text(oilTypeNumber),
+                              ),
+                            ),
+                          ),
+                        const Spacer(),
+                        if (oilTypePrice != '' && oilTypeDetails.isNotEmpty)
+                          Text('السعر: $oilTypePrice',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium!
+                                  .copyWith(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  )),
+                      ],
+                    ),
+                  ),
                 ),
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.015,
@@ -288,18 +450,18 @@ class _HomePageState extends State<HomePage> {
                   formKey: _formKey,
                   backgroundColor: Colors.white,
                   onTap: () {},
-                  controller: addressController,
-                  hint: 'العنوان',
-                  prefixIcon: Icons.home,
+                  controller: anotherOilTypeController,
+                  hint: 'نوع زيت اخر',
+                  prefixIcon: Icons.oil_barrel,
                   keyboardType: TextInputType.text,
                   obscureText: false,
                   readOnly: false,
                   maxLines: 1,
                   validator: (value) {
-                    if (value!.isEmpty) {
-                      return 'الرجاء إدخال البيانات';
-                    }
-                    return null;
+                    // if (value!.isEmpty) {
+                    //   return 'الرجاء إدخال البيانات';
+                    // }
+                    // return null;
                   },
                 ),
                 SizedBox(
@@ -317,10 +479,10 @@ class _HomePageState extends State<HomePage> {
                   readOnly: false,
                   maxLines: 1,
                   validator: (value) {
-                    if (value!.isEmpty) {
-                      return 'الرجاء إدخال البيانات';
-                    }
-                    return null;
+                    // if (value!.isEmpty) {
+                    //   return 'الرجاء إدخال البيانات';
+                    // }
+                    // return null;
                   },
                 ),
                 SizedBox(
@@ -420,7 +582,9 @@ class _HomePageState extends State<HomePage> {
                     child: MaterialButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate() &&
-                            _currentPosition != null) {
+                            _currentPosition != null &&
+                            (oilTypeNumber != '' ||
+                                anotherOilTypeController.text != '')) {
                           setState(() {
                             isSendLoading = true;
                           });
@@ -446,6 +610,62 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.025,
                 ),
+                Row(
+                  children: [
+                    Text(
+                      'للاستفسار: ',
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.05,
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        launchUrlString('tel:01093216112');
+                      },
+                      child: Text(
+                        '01093216112',
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.045,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFE4944D),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.05,
+                      child: Text(
+                        'أو',
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.045,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFE4944D),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        launchUrlString('tel:01152319096');
+                      },
+                      child: Text(
+                        '01152319096',
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.045,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFE4944D),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.025,
+                ),
                 Text(
                   'يتم توصيل الطلبات في منطقة العبور فقط',
                   style: Theme.of(context).textTheme.titleMedium!.copyWith(
@@ -457,7 +677,7 @@ class _HomePageState extends State<HomePage> {
                   height: MediaQuery.of(context).size.height * 0.025,
                 ),
                 Text(
-                  'الوصول خلال ساعة واحدة فقط',
+                  'الوصول في اقرب وقت',
                   style: Theme.of(context).textTheme.titleMedium!.copyWith(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,

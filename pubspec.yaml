@@ -44,6 +44,7 @@ dependencies:
   geolocator:
   geocoding:
   http:
+  url_launcher:
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +70,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/json/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
